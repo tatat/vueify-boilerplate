@@ -78,4 +78,15 @@ gulp.task('watch', () => {
   gulp.watch(['src/assets/**/*'], gulp.parallel('build:assets'))
 })
 
+gulp.task('test', gulp.series('environment'), done => {
+  const karma = require('karma').Server
+
+  const server = new karma({
+    configFile: `${__dirname}/karma.conf.js`,
+    singleRun: true
+  }, done)
+
+  server.start()
+})
+
 gulp.task('default', gulp.series('environment', 'build:clean', 'build', 'server', 'watch'))
