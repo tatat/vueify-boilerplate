@@ -19,6 +19,13 @@ const PORT = parseInt(argv.port || '8000', 10)
 const isProduction = () => process.env.NODE_ENV === 'production'
 const isNotProduction = () => !isProduction()
 
+gulp.task('environment', cb => {
+  const path = `./config/environments/${process.env.NODE_ENV}`
+  delete require.cache[require.resolve(path)]
+  process.env.ENV = JSON.stringify(require(path))
+  cb()
+})
+
 gulp.task('build:vueify', () => {
   return browserify({
     entries: ['src/application.js'],
@@ -26,7 +33,7 @@ gulp.task('build:vueify', () => {
     paths: ['./node_modules', './src']
   }).transform(babelify, {
       presets: ['es2015'],
-      plugins: ['transform-runtime']
+      plugins: ['transform-runtime', 'transform-inline-environment-variables']
     })
     .transform(vueify)
     .bundle()
@@ -65,9 +72,10 @@ gulp.task('server', () => {
 })
 
 gulp.task('watch', () => {
-  gulp.watch(['src/*.{js,vue,styl}', 'src/{lib,mixins,components}/**/*.{js,vue,styl}'], gulp.parallel('build:vueify'))
+  gulp.watch(['config/environments/*.js'], gulp.series('environment', 'build'))
+  gulp.watch(['src/*.{js,vue,styl}', 'src/{lib,mixins,components}/**/*.{js,vue,styl}', 'config/environments/*.js'], gulp.parallel('build:vueify'))
   gulp.watch(['src/views/**/*.pug'], gulp.parallel('build:views'))
   gulp.watch(['src/assets/**/*'], gulp.parallel('build:assets'))
 })
 
-gulp.task('default', gulp.series('build:clean', 'build', 'server', 'watch'))
+gulp.task('default', gulp.series('environment', 'build:clean', 'build', 'server', 'watch'))
